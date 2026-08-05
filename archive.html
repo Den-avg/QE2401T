@@ -47,14 +47,15 @@
             color: #555;
             margin-bottom: 6px;
         }
-        .field input {
+        .field input, .field select {
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #ddd;
             border-radius: 6px;
             font-size: 14px;
+            background: white;
         }
-        .field input:focus {
+        .field input:focus, .field select:focus {
             outline: none;
             border-color: #4285f4;
         }
@@ -186,6 +187,14 @@
 
             <div class="filters">
                 <div class="field">
+                    <label for="filterClass">Class</label>
+                    <select id="filterClass">
+                        <option value="">All classes</option>
+                        <option value="QE2401A">QE2401A</option>
+                        <option value="QE2501B">QE2501B</option>
+                    </select>
+                </div>
+                <div class="field">
                     <label for="filterName">Student name</label>
                     <input type="text" id="filterName" placeholder="Search by name...">
                 </div>
@@ -216,8 +225,8 @@
         // The ANON key is safe to expose here — Row Level Security on the
         // archive_attendance table is what actually restricts access, not
         // secrecy of this key. NEVER put the service_role key in this file.
-        const SUPABASE_URL      = "https://kjljcmcrnavisepnwnvv.supabase.co/";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqbGpjbWNybmF2aXNlcG53bnZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5MDU3MDgsImV4cCI6MjEwMTQ4MTcwOH0.vlMrgYle_MtBe5kSuhjjRe-QSrttro9CvrIOsgBpj6o";
+        const SUPABASE_URL      = "https://xxxxx.supabase.co";
+        const SUPABASE_ANON_KEY = "PASTE_YOUR_ANON_PUBLIC_KEY_HERE";
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -299,9 +308,10 @@
             tableWrap.innerHTML = '<div class="loading-state">Loading records...</div>';
             countBadge.textContent = '';
 
-            const nameFilter = document.getElementById('filterName').value.trim();
-            const fromDate   = document.getElementById('filterDateFrom').value; // yyyy-mm-dd
-            const toDate     = document.getElementById('filterDateTo').value;
+            const classFilter = document.getElementById('filterClass').value;
+            const nameFilter  = document.getElementById('filterName').value.trim();
+            const fromDate    = document.getElementById('filterDateFrom').value; // yyyy-mm-dd
+            const toDate      = document.getElementById('filterDateTo').value;
 
             let query = supabaseClient
                 .from('archive_attendance')
@@ -309,6 +319,9 @@
                 .order('created_at', { ascending: false })
                 .limit(500);
 
+            if (classFilter) {
+                query = query.eq('class', classFilter);
+            }
             if (nameFilter) {
                 query = query.ilike('name', `%${nameFilter}%`);
             }
@@ -341,15 +354,16 @@
 
             countBadge.textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
 
-            let html = '<table><thead><tr><th>Name</th><th>Date</th><th>Time</th></tr></thead><tbody>';
+            let html = '<table><thead><tr><th>Name</th><th>Class</th><th>Date</th><th>Time</th></tr></thead><tbody>';
             for (const row of rows) {
-                html += `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.date)}</td><td>${escapeHtml(row.time)}</td></tr>`;
+                html += `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.class)}</td><td>${escapeHtml(row.date)}</td><td>${escapeHtml(row.time)}</td></tr>`;
             }
             html += '</tbody></table>';
             tableWrap.innerHTML = html;
         }
 
         function clearFilters() {
+            document.getElementById('filterClass').value = '';
             document.getElementById('filterName').value = '';
             document.getElementById('filterDateFrom').value = '';
             document.getElementById('filterDateTo').value = '';
