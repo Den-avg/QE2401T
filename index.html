@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Attendance System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            max-width: 420px;
+            width: 100%;
+        }
+        h1 { color: #4285f4; margin-bottom: 8px; font-size: 22px; }
+        p.sub { color: #666; margin-bottom: 30px; font-size: 14px; }
+        .links {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        a.launch {
+            display: block;
+            text-decoration: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        a.launch:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        a.primary {
+            background: #4285f4;
+            color: white;
+        }
+        a.primary:hover { background: #3367d6; }
+        a.secondary {
+            background: white;
+            color: #4285f4;
+            border: 1px solid #4285f4;
+        }
+        a.secondary:hover { background: #f5f9ff; }
+        .note {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>📸 Face Attendance System</h1>
+        <p class="sub">QE2401A — sign in to continue</p>
+        <div class="links">
+            <a class="launch primary" href="camera.html">▶️ Take Attendance</a>
+            <a class="launch secondary" href="archive.html">📋 View Archive</a>
+        </div>
+        <div class="note">Both pages require sign-in</div>
+    </div>
+</body>
+</html>
