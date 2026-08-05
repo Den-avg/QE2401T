@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Recognition Attendance</title>
+    <title>Face Recognition Attendance — QE2401A</title>
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -126,7 +126,7 @@
         <div class="container">
             <div class="header">
                 <div>
-                    <h1>📸 Face Recognition Attendance</h1>
+                    <h1>📸 Face Recognition Attendance — QE2401A</h1>
                     <div class="user-email" id="userEmailLabel"></div>
                 </div>
                 <div>
@@ -195,6 +195,7 @@
         const SUPABASE_URL      = "https://kjljcmcrnavisepnwnvv.supabase.co/";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqbGpjbWNybmF2aXNlcG53bnZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5MDU3MDgsImV4cCI6MjEwMTQ4MTcwOH0.vlMrgYle_MtBe5kSuhjjRe-QSrttro9CvrIOsgBpj6o";
         const STORAGE_BUCKET    = "student-photos";
+        const CLASS_NAME        = "QE2401A";
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -379,6 +380,7 @@
                 const { data: students, error } = await supabaseClient
                     .from('students')
                     .select('name, photo_path')
+                    .eq('class', CLASS_NAME)
                     .order('name');
 
                 if (error) throw error;
@@ -622,7 +624,8 @@
                 const { error: updateErr } = await supabaseClient
                     .from('students')
                     .update({ status: 'Present', last_attendance: now.toISOString() })
-                    .in('name', names);
+                    .in('name', names)
+                    .eq('class', CLASS_NAME); // scoped so a same-named student in another class is never touched
 
                 if (updateErr) throw updateErr;
 
@@ -630,7 +633,7 @@
                 // Script pushArchiveToSupabase() did.
                 const dateStr = now.toLocaleDateString('en-GB'); // dd/mm/yyyy
                 const timeStr = now.toLocaleTimeString('en-GB'); // HH:mm:ss
-                const archiveRows = names.map(name => ({ name, date: dateStr, time: timeStr }));
+                const archiveRows = names.map(name => ({ name, date: dateStr, time: timeStr, class: CLASS_NAME }));
                 const { error: archiveErr } = await supabaseClient.from('archive_attendance').insert(archiveRows);
                 if (archiveErr) console.error('Archive insert failed (attendance itself still recorded):', archiveErr.message);
 
@@ -652,7 +655,7 @@
                 const { error } = await supabaseClient
                     .from('students')
                     .update({ status: '', last_attendance: null })
-                    .not('id', 'is', null); // update all rows
+                    .eq('class', CLASS_NAME); // only this class's roster
                 if (error) throw error;
                 updateStatus('Cleared all attendance marks', 'success');
                 loadAbsentees();
@@ -667,6 +670,7 @@
                 const { data, error } = await supabaseClient
                     .from('students')
                     .select('name')
+                    .eq('class', CLASS_NAME)
                     .or('status.is.null,status.neq.Present');
 
                 if (error) throw error;
