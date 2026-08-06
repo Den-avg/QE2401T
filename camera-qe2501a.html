@@ -614,10 +614,12 @@
         }
 
         // ============ ATTENDANCE ============
-        async function confirmAttendance() {
-            if (selectedMatches.size === 0) { updateStatus('No students selected', 'error'); return; }
-            const names = [...selectedMatches];
-            updateStatus('Marking attendance for ' + names.length + ' students...');
+       async function confirmAttendance() {
+    if (confirmBtn.disabled) return; // already processing — ignore extra clicks
+    if (selectedMatches.size === 0) { updateStatus('No students selected', 'error'); return; }
+    const names = [...selectedMatches];
+    confirmBtn.disabled = true;
+    updateStatus('Marking attendance for ' + names.length + ' students...');
 
             try {
                 const now = new Date();
@@ -645,6 +647,7 @@
                 loadAbsentees();
             } catch (err) {
                 updateStatus('❌ ' + err.message, 'error');
+                confirmBtn.disabled = false; // let them retry after a real failure
             }
         }
 
