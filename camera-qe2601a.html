@@ -703,7 +703,87 @@
                 console.error(err);
             }
         }
+let fullRoster = []; // { name, status }
 
+async function loadManualRoster() {
+    const { data, error } = await supabaseClient
+        .from('students')
+        .select('name, status')
+        .eq('class', CLASS_NAME)
+        .order('name');
+    if (error) { console.error(error); return; }
+    fullRoster = data || [];
+    renderRosterList();
+}
+
+function renderRosterList() {
+    const search = document.getElementById('rosterSearch').value.trim().toLowerCase();
+    const filtered = fullRoster.filter(s => s.name.toLowerCase().includes(search));
+    const container = document.getElementById('rosterList');
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div style="padding:15px;color:#888;">No matching students.</div>';
+        return;
+    }
+
+    container.innerHTML = filtered.map(s => {
+        const isPresent = s.status === 'Present';
+        const escapedName = s.name.replace(/'/g, "\\'");
+        return `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid #eee;">
+            <span>${s.name} ${isPresent ? '<span style="color:#34a853;font-size:12px;">(Present)</span>' : ''}</span>
+            <div>
+              <button class="btn-success" style="padding:6px 14px;" onclick="manualMark('${escapedName}', true)" ${isPresent ? 'disabled' : ''}>Mark Present</button>
+              <button class="btn-danger" style="padding:6px 14px;" onclick="manualMark('${escapedName}', false)" ${!isPresent ? 'disabled' : ''}>Unmark</button>
+            </div>
+          </div>`;
+    }).join('');
+}
+
+// present=true marks them present (and logs an archive record, same as a
+// scan would). present=false undoes a wrongly-marked entry: resets status
+// AND removes today's archive record for that student so the absentee
+// report doesn't count a corrected mistake as real attendance.
+async function manualMark(name, present) {
+    try {
+        const now = new Date();
+        const { error: updateErr } = await supabaseClient
+            .from('students')
+            .update({
+                status: present ? 'Present' : '',
+                last_attendance: present ? now.toISOString() : null
+            })
+            .eq('name', name)
+            .eq('class', CLASS_NAME);
+        if (updateErr) throw updateErr;
+
+        if (present) {
+            const dateStr = now.toLocaleDateString('en-GB');
+            const timeStr = now.toLocaleTimeString('en-GB');
+            const { error: archiveErr } = await supabaseClient
+                .from('archive_attendance')
+                .insert({ name, date: dateStr, time: timeStr, class: CLASS_NAME });
+            if (archiveErr) console.error('Archive insert failed:', archiveErr.message);
+        } else {
+            // Remove today's archive record(s) for this student so an
+            // unmark genuinely undoes the attendance, not just the badge.
+            const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+            const { error: deleteErr } = await supabaseClient
+                .from('archive_attendance')
+                .delete()
+                .eq('name', name)
+                .eq('class', CLASS_NAME)
+                .gte('created_at', startOfDay.toISOString());
+            if (deleteErr) console.error('Archive cleanup failed:', deleteErr.message);
+        }
+
+        updateStatus(`✅ ${name} ${present ? 'marked present' : 'unmarked'}`, 'success');
+        await loadManualRoster();
+        loadAbsentees();
+    } catch (err) {
+        updateStatus('❌ ' + err.message, 'error');
+    }
+}
         function refreshAbsentees() { loadAbsentees(); }
 
         // Expose to global scope
