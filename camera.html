@@ -181,6 +181,14 @@
                 <h2>❌ Absent Students</h2>
                 <button class="btn-primary" onclick="refreshAbsentees()" style="margin: 10px 0;">🔄 Refresh</button>
                 <div id="absenteeList" class="absentee-grid"></div>
+                 <!-- Manual Roster Section -->
+            <div class="absentees" style="margin-top: 20px;">
+                <h2>✍️ Manual Attendance Override</h2>
+                <input type="text" id="rosterSearch" placeholder="Search student name..."
+                       style="width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:6px; margin:10px 0;"
+                       oninput="renderRosterList()">
+                <div id="rosterList"></div>
+            </div>
             </div>
         </div>
     </div>
