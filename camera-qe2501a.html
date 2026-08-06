@@ -380,7 +380,7 @@
                 const { data: students, error } = await supabaseClient
                     .from('students')
                     .select('name, photo_path')
-                    .eq('class', qe2501a)
+                    .eq('class', "qe2501a")
                     .order('name');
 
                 if (error) throw error;
@@ -625,7 +625,7 @@
                     .from('students')
                     .update({ status: 'Present', last_attendance: now.toISOString() })
                     .in('name', names)
-                    .eq('class', qe2501a); // scoped so a same-named student in another class is never touched
+                    .eq('class', "qe2501a"); // scoped so a same-named student in another class is never touched
 
                 if (updateErr) throw updateErr;
 
@@ -655,7 +655,7 @@
                 const { error } = await supabaseClient
                     .from('students')
                     .update({ status: '', last_attendance: null })
-                    .eq('class', qe2501a); // only this class's roster
+                    .eq('class', "qe2501a"); // only this class's roster
                 if (error) throw error;
                 updateStatus('Cleared all attendance marks', 'success');
                 loadAbsentees();
@@ -670,7 +670,7 @@
                 const { data, error } = await supabaseClient
                     .from('students')
                     .select('name')
-                    .eq('class', qe2501a)
+                    .eq('class', "qe2501a")
                     .or('status.is.null,status.neq.Present');
 
                 if (error) throw error;
