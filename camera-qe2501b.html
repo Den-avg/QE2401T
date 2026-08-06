@@ -652,20 +652,28 @@
         }
 
         async function clearAllAttendance() {
-            if (!confirm('Clear all attendance marks?')) return;
-            updateStatus('Clearing attendance...');
-            try {
-                const { error } = await supabaseClient
-                    .from('students')
-                    .update({ status: '', last_attendance: null })
-                    .eq('class', CLASS_NAME); // only this class's roster
-                if (error) throw error;
-                updateStatus('Cleared all attendance marks', 'success');
-                loadAbsentees();
-            } catch (err) {
-                updateStatus('❌ ' + err.message, 'error');
-            }
-        }
+    if (!confirm('Clear all attendance marks?')) return;
+    updateStatus('Clearing attendance...');
+    try {
+        const { error } = await supabaseClient
+            .from('students')
+            .update({ status: '', last_attendance: null })
+            .eq('class', CLASS_NAME); // only this class's roster
+        if (error) throw error;
+
+        // Every Clear All = one completed lesson, logged for the
+        // absentee report. lesson_date defaults to today server-side.
+        const { error: lessonErr } = await supabaseClient
+            .from('lessons')
+            .insert({ class: CLASS_NAME });
+        if (lessonErr) console.error('Lesson logging failed (attendance clear still succeeded):', lessonErr.message);
+
+        updateStatus('Cleared all attendance marks — lesson logged', 'success');
+        loadAbsentees();
+    } catch (err) {
+        updateStatus('❌ ' + err.message, 'error');
+    }
+}
 
         // ============ ABSENTEES ============
         async function loadAbsentees() {
