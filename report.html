@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Risk Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; min-height: 100vh; }
+
+        #loginView { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .login-card { background: white; border-radius: 12px; padding: 40px; width: 100%; max-width: 360px; box-shadow: 0 2px 15px rgba(0,0,0,0.1); }
+        .login-card h1 { font-size: 20px; color: #4285f4; margin-bottom: 6px; text-align: center; }
+        .login-card p.sub { color: #888; font-size: 13px; text-align: center; margin-bottom: 24px; }
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; }
+        .field input, .field select {
+            width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background: white;
+        }
+        .field input:focus, .field select:focus { outline: none; border-color: #4285f4; }
+        .login-error {
+            background: #ffebee; border-left: 3px solid #ea4335; color: #c62828;
+            padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none;
+        }
+
+        #reportView { display: none; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header {
+            background: #4285f4; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+        }
+        .header h1 { font-size: 22px; }
+        .btn-outline-white { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.6); padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+        .btn-outline-white:hover { background: rgba(255,255,255,0.15); }
+
+        .filters { background: white; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+        .filters .field { margin-bottom: 0; min-width: 150px; flex: 1; }
+        button { border: none; border-radius: 6px; cursor: pointer; font-size: 14px; padding: 10px 20px; }
+        .btn-primary { background: #4285f4; color: white; }
+
+        .table-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; }
+        th { color: #666; font-weight: 600; background: #fafafa; }
+        tr.high-risk { background: #fff5f5; }
+        .risk-badge { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .risk-badge.high { background: #ffebee; color: #c62828; }
+        .risk-badge.ok { background: #e8f5e9; color: #2e7d32; }
+        .empty-state { text-align: center; padding: 40px; color: #888; }
+        .summary { font-size: 13px; color: #666; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+
+    <div id="loginView">
+        <div class="login-card">
+            <h1>🔒 Attendance Risk Report</h1>
+            <p class="sub">Sign in to view the report</p>
+            <div id="loginError" class="login-error"></div>
+            <div class="field"><label>Email</label><input type="email" id="email" autocomplete="username"></div>
+            <div class="field"><label>Password</label><input type="password" id="password" autocomplete="current-password"></div>
+            <button class="btn-primary" style="width:100%;" id="loginBtn" onclick="handleLogin()">Sign In</button>
+        </div>
+    </div>
+
+    <div id="reportView">
+        <div class="container">
+            <div class="header">
+                <h1>📊 Attendance Risk Report</h1>
+                <button class="btn-outline-white" onclick="handleLogout()">Sign Out</button>
+            </div>
+
+            <div class="filters">
+                <div class="field">
+                    <label>Class</label>
+                    <select id="reportClass">
+                        <option value="QE2401A">QE2401A</option>
+                        <option value="QE2501B">QE2501B</option>
+                    </select>
+                </div>
+                <div class="field"><label>From date</label><input type="date" id="fromDate"></div>
+                <div class="field"><label>To date</label><input type="date" id="toDate"></div>
+                <div class="field" style="max-width:140px;">
+                    <label>Flag if absent ≥</label>
+                    <input type="number" id="threshold" value="30" min="1" max="100"> %
+                </div>
+                <button class="btn-primary" onclick="generateReport()">Generate</button>
+            </div>
+
+            <div class="table-card">
+                <div class="summary" id="summary"></div>
+                <div id="tableWrap"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        "use strict";
+
+        // Copy these two lines exactly from your existing camera.html —
+        // same Supabase project, no need to go back to the dashboard.
+        const SUPABASE_URL      = "https://kjljcmcrnavisepnwnvv.supabase.co/";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqbGpjbWNybmF2aXNlcG53bnZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5MDU3MDgsImV4cCI6MjEwMTQ4MTcwOH0.vlMrgYle_MtBe5kSuhjjRe-QSrttro9CvrIOsgBpj6o";
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const loginView = document.getElementById('loginView');
+        const reportView = document.getElementById('reportView');
+        const loginError = document.getElementById('loginError');
+        const loginBtn = document.getElementById('loginBtn');
+
+        async function handleLogin() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            if (!email || !password) { showLoginError('Enter both email and password.'); return; }
+            loginBtn.disabled = true;
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            loginBtn.disabled = false;
+            if (error) { showLoginError(error.message === 'Invalid login credentials' ? 'Incorrect email or password.' : error.message); return; }
+            showReport();
+        }
+        function showLoginError(msg) { loginError.textContent = msg; loginError.style.display = 'block'; }
+        async function handleLogout() { await supabaseClient.auth.signOut(); reportView.style.display = 'none'; loginView.style.display = 'flex'; }
+        function showReport() { loginView.style.display = 'none'; reportView.style.display = 'block'; }
+        async function checkExistingSession() {
+            const { data } = await supabaseClient.auth.getSession();
+            if (data.session) showReport();
+        }
+        window.addEventListener('DOMContentLoaded', checkExistingSession);
+
+        async function generateReport() {
+            const cls = document.getElementById('reportClass').value;
+            const from = document.getElementById('fromDate').value; // yyyy-mm-dd
+            const to = document.getElementById('toDate').value;
+            const thresholdPct = parseFloat(document.getElementById('threshold').value) || 30;
+
+            if (!from || !to) { alert('Pick both a From and To date.'); return; }
+
+            document.getElementById('tableWrap').innerHTML = '<div class="empty-state">Loading...</div>';
+
+            // 1. How many lessons were conducted in this range (one row
+            //    per Clear All click during that period).
+            const { data: lessons, error: lessonErr } = await supabaseClient
+                .from('lessons')
+                .select('lesson_date')
+                .eq('class', cls)
+                .gte('lesson_date', from)
+                .lte('lesson_date', to);
+            if (lessonErr) { alert('Error loading lessons: ' + lessonErr.message); return; }
+
+            const totalLessons = lessons.length;
+
+            // 2. Full roster for this class.
+            const { data: roster, error: rosterErr } = await supabaseClient
+                .from('students')
+                .select('name')
+                .eq('class', cls)
+                .order('name');
+            if (rosterErr) { alert('Error loading roster: ' + rosterErr.message); return; }
+
+            // 3. Attendance records in this range.
+            const { data: attendance, error: attErr } = await supabaseClient
+                .from('archive_attendance')
+                .select('name, created_at')
+                .eq('class', cls)
+                .gte('created_at', `${from}T00:00:00`)
+                .lte('created_at', `${to}T23:59:59`);
+            if (attErr) { alert('Error loading attendance: ' + attErr.message); return; }
+
+            // Count distinct attended calendar days per student (guards
+            // against a student being marked present twice in one day
+            // inflating their count).
+            const presentDaysByName = {};
+            for (const row of attendance) {
+                const day = row.created_at.slice(0, 10);
+                if (!presentDaysByName[row.name]) presentDaysByName[row.name] = new Set();
+                presentDaysByName[row.name].add(day);
+            }
+
+            const rows = roster.map(s => {
+                const present = Math.min(presentDaysByName[s.name]?.size || 0, totalLessons);
+                const absent = Math.max(totalLessons - present, 0);
+                const rate = totalLessons > 0 ? (absent / totalLessons) * 100 : 0;
+                return { name: s.name, present, absent, rate, highRisk: rate >= thresholdPct };
+            }).sort((a, b) => b.rate - a.rate);
+
+            renderReport(rows, totalLessons, thresholdPct);
+        }
+
+        function renderReport(rows, totalLessons, thresholdPct) {
+            const summary = document.getElementById('summary');
+            const wrap = document.getElementById('tableWrap');
+
+            if (totalLessons === 0) {
+                summary.textContent = '';
+                wrap.innerHTML = '<div class="empty-state">No lessons logged in this date range for this class. (A lesson is logged each time "Clear All" is pressed on the camera page.)</div>';
+                return;
+            }
+
+            const highRiskCount = rows.filter(r => r.highRisk).length;
+            summary.textContent = `${totalLessons} lesson(s) in range · ${rows.length} student(s) · ${highRiskCount} flagged at ≥${thresholdPct}% absence`;
+
+            let html = '<table><thead><tr><th>Name</th><th>Lessons</th><th>Present</th><th>Absent</th><th>Absence Rate</th><th>Status</th></tr></thead><tbody>';
+            for (const r of rows) {
+                html += `<tr class="${r.highRisk ? 'high-risk' : ''}">
+                    <td>${escapeHtml(r.name)}</td>
+                    <td>${totalLessons}</td>
+                    <td>${r.present}</td>
+                    <td>${r.absent}</td>
+                    <td>${r.rate.toFixed(0)}%</td>
+                    <td><span class="risk-badge ${r.highRisk ? 'high' : 'ok'}">${r.highRisk ? 'HIGH RISK' : 'OK'}</span></td>
+                </tr>`;
+            }
+            html += '</tbody></table>';
+            wrap.innerHTML = html;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str == null ? '' : String(str);
+            return div.innerHTML;
+        }
+
+        window.handleLogin = handleLogin;
+        window.handleLogout = handleLogout;
+        window.generateReport = generateReport;
+    </script>
+</body>
+</html>
