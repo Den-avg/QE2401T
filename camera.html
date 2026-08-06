@@ -652,20 +652,20 @@
         }
 
         async function clearAllAttendance() {
-            if (!confirm('Clear all attendance marks?')) return;
-            updateStatus('Clearing attendance...');
-            try {
-                const { error } = await supabaseClient
-                    .from('students')
-                    .update({ status: '', last_attendance: null })
-                    .eq('class', CLASS_NAME); // only this class's roster
-                if (error) throw error;
-                updateStatus('Cleared all attendance marks', 'success');
-                loadAbsentees();
-            } catch (err) {
-                updateStatus('❌ ' + err.message, 'error');
-            }
-        }
+    if (!confirm('Clear all attendance marks?')) return;
+    updateStatus('Clearing attendance...');
+    try {
+        const { error } = await supabaseClient
+            .from('students')
+            .update({ status: '', last_attendance: null })
+            .eq('class', CLASS_NAME); // only this class's roster
+        if (error) throw error;
+        updateStatus('Cleared all attendance marks', 'success');
+        loadAbsentees();
+    } catch (err) {
+        updateStatus('❌ ' + err.message, 'error');
+    }
+}
 
         // ============ ABSENTEES ============
         async function loadAbsentees() {
