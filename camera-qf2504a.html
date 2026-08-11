@@ -645,7 +645,7 @@
                 // Script pushArchiveToSupabase() did.
                 const dateStr = now.toLocaleDateString('en-GB'); // dd/mm/yyyy
                 const timeStr = now.toLocaleTimeString('en-GB'); // HH:mm:ss
-                const archiveRows = names.map(name => ({ name, date: dateStr, time: timeStr, class: "qf2504a" }));
+                const archiveRows = names.map(name => ({ name, date: dateStr, time: timeStr, class: CLASS_NAME }));
                 const { error: archiveErr } = await supabaseClient.from('archive_attendance').insert(archiveRows);
                 if (archiveErr) console.error('Archive insert failed (attendance itself still recorded):', archiveErr.message);
 
