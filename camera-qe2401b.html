@@ -688,24 +688,26 @@
 
         // ============ ABSENTEES ============
         async function loadAbsentees() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('students')
-                    .select('name')
-                    .eq('class', "qe2401b")
-                    .or('status.is.null,status.neq.Present');
+    try {
+        const { data, error } = await supabaseClient
+            .from('students')
+            .select('name')
+            .eq('class', CLASS_NAME)
+            .or('status.is.null,status.neq.Present')
+            .order('name');
 
-                if (error) throw error;
+        if (error) throw error;
 
-                if (!data || data.length === 0) {
-                    absenteeList.innerHTML = '<div style="grid-column:1/-1;padding:20px;text-align:center;">🎉 All students present!</div>';
-                } else {
-                    absenteeList.innerHTML = data.map(s => `<div class="absentee-item">${s.name}</div>`).join('');
-                }
-            } catch (err) {
-                console.error(err);
-            }
+        if (!data || data.length === 0) {
+            absenteeList.innerHTML = '<div style="grid-column:1/-1;padding:20px;text-align:center;">🎉 All students present!</div>';
+        } else {
+            const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name));
+            absenteeList.innerHTML = sorted.map(s => `<div class="absentee-item">${s.name}</div>`).join('');
         }
+    } catch (err) {
+        console.error(err);
+    }
+}
 let fullRoster = []; // { name, status }
 
 async function loadManualRoster() {
