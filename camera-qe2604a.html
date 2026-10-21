@@ -638,7 +638,7 @@
                     .from('students')
                     .update({ status: 'Present', last_attendance: now.toISOString() })
                     .in('name', names)
-                    .eq('class', "qe2604a"); // scoped so a same-named student in another class is never touched
+                    .eq('class', "QE2604A"); // scoped so a same-named student in another class is never touched
 
                 if (updateErr) throw updateErr;
 
